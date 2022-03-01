@@ -1,0 +1,114 @@
+/*----------Seccion codigo----------*/
+package com.example.compiladores_1er_practica.analizadores;
+
+import java_cup.runtime.*;
+import java.util.*;
+import com.example.compiladores_1er_practica.informacion.Datos;
+
+parser code
+{:
+    private int contadorBarras = 0;
+
+    public int getContadorBarras(){
+            return contadorBarras;
+    }
+    public void aumentarContador(){
+            contadorBarras++;
+    }
+
+    public void syntax_error(Symbol token){
+        System.out.println(token.value + " L:"+token.left+" C:"+token.right);
+    }
+
+:};
+
+/*----------Seccion Terminales----------*/
+
+terminal String DEF,BARRAS,PIE,TITULO,EJEX,EJEY,ETIQUETAS,VALORES,UNIR,TIPO,TIPO_CANTIDAD,TIPO_PORCENTAJE,TOTAL,EXTRA,EJECUTAR;
+terminal String PUNTO_COMA,DOS_PUNTOS,COMA,ID,NUMERO,LLV_A,LLV_C,COR_A,COR_C,PAR_A,PAR_C,SUMA,RESTA,MULTIPLICACION,DIVISION, UMENOS;
+terminal String COMENTARIO;
+
+/*----------Seccion No Terminales----------*/
+non terminal barras;
+non terminal caracteristicas_barras;
+non terminal titulo,tipo_cantidad,tipo_porcentaje,etiqueta,id_etiqueta,valores,total,unir,tuplas_unir,extra,ejex,ejey,ejecutar;
+non terminal Double operacion;
+non terminal operacion_prod;
+
+/*-----------Precedencia-------------*/
+
+precedence left SUMA,RESTA;
+precedence left MULTIPLICACION,DIVISION;
+precedence left PAR_A, PAR_C;
+precedence right UMENOS;
+
+/*----------Gramatica Tipo 2-----------*/
+barras      ::= DEF BARRAS LLV_A caracteristicas_barras LLV_C {:System.out.println("Estructura correcta");:}
+            |   error:a barras  {: Datos.agregarElementoError(new String[]{(String)a,aleft+"",aright+"","Sintactico","Se esperaba una caracteristica correcta"});:}
+;
+
+operacion   ::= operacion:a SUMA:suma operacion:b    {: RESULT = a+b;    Datos.agregarElementoAritmetico(new String[]{"Suma", sumaleft+"", sumaright+"", a+"+"+b });:}
+            |   operacion:a RESTA:resta operacion:b   {: RESULT = a-b;    Datos.agregarElementoAritmetico(new String[]{"Suma", restaleft+"", restaright+"", a+"+"+b });:}
+            |   operacion:a MULTIPLICACION:por operacion:b  {: RESULT = a*b;    Datos.agregarElementoAritmetico(new String[]{"Suma", porleft+"", porright+"", a+"+"+b });:}
+            |   operacion:a DIVISION:division operacion:b    {: RESULT = a/+b;   Datos.agregarElementoAritmetico(new String[]{"Suma", divisionleft+"", divisionright+"", a+"+"+b });:}
+            |   PAR_A operacion:a PAR_C {: RESULT = a;:}
+            |   RESTA:resta operacion:a {:RESULT = a*-1;:}  %prec UMENOS
+            |   NUMERO:a    {: RESULT = new Double(a);:}
+            //|   error:a operacion     {:Datos.agregarElementoError(new String[]{(String)a,aleft+"",aright+"","Sintactico","Se esperaba una operacion correcta"});:}
+;
+
+caracteristicas_barras  ::= titulo ejex ejey unir
+                        |   titulo ejey unir ejex
+                        |   titulo unir ejex ejey
+                        |   titulo ejex unir ejey
+                        |   titulo ejey ejex unir
+                        |   titulo unir ejey ejex
+                        |   ejex titulo ejey unir
+                        |   ejex ejey unir titulo
+                        |   ejex unir titulo ejey
+                        |   ejex titulo unir ejey
+                        |   ejex unir ejey titulo
+                        |   ejex ejey titulo unir
+                        |   ejey titulo ejex unir
+                        |   ejey ejex unir titulo
+                        |   ejey unir titulo ejex
+                        |   ejey titulo unir ejex
+                        |   ejey unir ejex titulo
+                        |   ejey ejex titulo unir
+                        |   unir titulo ejex ejey
+                        |   unir ejex ejey titulo
+                        |   unir ejey titulo ejex
+                        |   unir titulo ejey ejex
+                        |   unir ejey ejex titulo
+                        |   unir ejex titulo ejey
+                        |   error:a barras {: Datos.agregarElementoError(new String[]{(String)a,aleft+"",aright+"","Sintactico","Se esperaba un" + (String)a});:}
+;
+ejex        ::= EJEX DOS_PUNTOS COR_A id_etiqueta COR_C PUNTO_COMA
+;
+ejey        ::= EJEY DOS_PUNTOS COR_A operacion_prod COR_C PUNTO_COMA
+;
+
+titulo      ::= TITULO DOS_PUNTOS ID PUNTO_COMA
+;
+
+id_etiqueta ::= ID
+            |   ID COMA id_etiqueta
+;
+
+operacion_prod  ::= operacion
+                |   operacion COMA operacion_prod
+                |   error:a operacion_prod {: Datos.agregarElementoError(new String[]{(String)a,aleft+"",aright+"","Sintactico","Se esperaba una operacion correcta"});:}
+;
+
+unir        ::= UNIR DOS_PUNTOS COR_A tuplas_unir COR_C PUNTO_COMA
+            |   error:a LLV_C {: Datos.agregarElementoError(new String[]{(String)a,aleft+"",aright+"","Sintactico","Se esperaba una tupla correcta"});:}
+;
+tuplas_unir ::= LLV_A operacion_prod LLV_C
+            |   LLV_A operacion_prod LLV_C COMA tuplas_unir
+;
+
+ejecutar    ::= EJECUTAR PAR_A ID PAR_C PUNTO_COMA
+;
+
+
+
